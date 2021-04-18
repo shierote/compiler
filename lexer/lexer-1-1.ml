@@ -3,7 +3,7 @@
    INT: 0 |([1-9][0-9]* )   ID: [a-z]([a-z]|[0-9])*
 *)
 (* トークンの定義 *)
-type token = INVALID | EQ | LEQ | LT | PLUS | IF | THEN | INT | ID
+type token = INVALID | EQ | LEQ | LT | GEQ | GT | PLUS | TIMES | IF | THEN | ELSE | INT | ID
 
 (* 入力文字列を格納しておく場所 *)
 let input_buffer: string ref = ref ""
@@ -34,9 +34,13 @@ let output_token token =
    EQ -> print_string "EQ "
  | LEQ -> print_string "LEQ "
  | LT -> print_string "LT "
+ | GEQ -> print_string "GEQ "
+ | GT -> print_string "GT "
  | PLUS -> print_string "PLUS "
+ | TIMES -> print_string "TIMES "
  | IF -> print_string "IF "
  | THEN -> print_string "THEN "
+ | ELSE -> print_string "ELSE "
  | INT -> (print_string ("INT("^(get_lexeme())^") "))
  | ID -> print_string ("ID("^(get_lexeme())^") ")
  | INVALID -> assert false
@@ -59,9 +63,12 @@ and q0 () = (* 初期状態 *)
            q0())
   | '=' -> (save EQ; next())
   | '<' -> (save LT; q_lt())
+  | '>' -> (save GT; q_gt())
   | '+' -> (save PLUS; next())
+  | '*' -> (save TIMES; next())
   | 'i' -> (save ID; q_i())
   | 't' -> (save ID; q_t())
+  | 'e' -> (save ID; q_e())
   | '0' -> (save INT; next())
   | c -> if '1'<=c && c<='9' then (save INT; q_num())
          else if 'a'<= c && c<='z' then (save ID; q_sym())
@@ -71,6 +78,11 @@ and q0 () = (* 初期状態 *)
 and q_lt() =
   match readc() with
     '=' -> (save LEQ; next())
+  | _ -> next()
+
+and q_gt() =
+  match readc() with
+    '=' -> (save GEQ; next())
   | _ -> next()
 
 and q_num() = 
@@ -98,6 +110,24 @@ and q_th() =
 and q_the() = 
   match readc() with
     'n' -> (save THEN; q_sym())
+  | c -> if ('a'<= c && c<='z')||('0'<=c && c<='9') then (save ID; q_sym())
+         else next()
+
+and q_e() =
+  match readc() with
+    'l' -> (save ID; q_el())
+  | c -> if ('a'<= c && c<='z')||('0'<=c && c<='9') then (save ID; q_sym())
+         else next()
+
+and q_el() =
+  match readc() with
+    's' -> (save ID; q_els())
+  | c -> if ('a'<= c && c<='z')||('0'<=c && c<='9') then (save ID; q_sym())
+         else next()
+
+and q_els() =
+  match readc() with
+    'e' -> (save ELSE; q_sym())
   | c -> if ('a'<= c && c<='z')||('0'<=c && c<='9') then (save ID; q_sym())
          else next()
 

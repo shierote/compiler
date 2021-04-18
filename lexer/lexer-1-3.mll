@@ -10,8 +10,8 @@
 let line_no = ref 1  (* the current line number, used for error reporting *)
 let end_of_previousline = ref 0
 (* data type declaration for tokens *)
-type token = EQ | LEQ | LT | PLUS | MINUS | TIMES | LPAREN | RPAREN 
-           | IF | THEN | INT of int | ID of string | EOF
+type token = EQ | LEQ | LT | GEQ | GT | PLUS | MINUS | TIMES | LPAREN | RPAREN
+           | IF | THEN | ELSE | INT of int | ID of string | EOF
 }
 
 (* abbreviations *)
@@ -36,9 +36,12 @@ rule token = parse
 | "=" {EQ}
 | "<=" {LEQ}
 | "<" {LT}
+| ">=" {GEQ}
+| ">" {GT}
 | "0" {INT(0)}
 | "if" {IF}
 | "then" {THEN}
+| "else" {ELSE}
 | digitnz digit* 
    {let s = Lexing.lexeme lexbuf in INT(int_of_string s)}
 | lower (digit|lower)*
