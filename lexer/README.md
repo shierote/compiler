@@ -110,6 +110,55 @@ IF ID(if0) GT INT(1) THEN ID(then1) EQ INT(2) ELSE ID(else2) EQ INT(3) - : unit 
 となり、これは意図した動作になっている。
 
 ## 1-2[余力があれば]コメントをスペースと同一視して扱えるようにする
+### 加えた変更
+`/`でコメントを検知するための状態関数に移動する。
+```ocaml
+@@ -63,6 +63,8 @@ and q0 =
+   | 'i' -> (save ID; q_i())
+   | 't' -> (save ID; q_t())
+   | '0' -> (save INT; next())
++  | '/' -> (pos_start := !pos_start+1;
++            q_lsl())
+   | c -> if '1'<=c && c<='9' then (save INT; q_num())
+          else if 'a'<= c && c<='z' then (save ID; q_sym())
+```
+`*`で次の状態に移りコメントを検知できるようにする。
+```ocaml
+@@ -106,6 +108,21 @@ and q_sym() =
+       if ('a'<= c && c<='z')||('0'<=c && c<='9') then (save ID; q_sym())
+       else next()
+
++and q_lsl() =
++  match readc() with
++    '*' -> (pos_start := !pos_start+1;q_com())
++  | _ -> report_error(!pos_current)
++
++and q_com() =
++  match readc() with
++    '*' -> (pos_start := !pos_start+1;q_ast())
++  | _ -> (pos_start := !pos_start+1;q_com())
++
++and q_ast() =
++  match readc() with
++    '/' -> (pos_start := !pos_start+1;q0())
++  | _ -> report_error(!pos_current)
++
+ and next() =
+      if !last_token=INVALID then
+```
+
+### テストケース
+`#use 'lexer-1-2.ml'`とした後に、以下を実行すると、意図した挙動になっていることが確認できる。
+```
+# main "if /* this is a comment */ x<y";;
+IF ID(x) LT ID(y) - : unit = ()
+```
+ただし現在の実装だとnested commentに対応できない。nested commentに対応するには再起関数などを使って実装する。
+```
+# main "if /* /* this is a comment */ */ x<y";;
+IF invalid token at position 9
+- : unit = ()
+```
 
 ## 1-3[必須]lexer.mll を拡張し、GT,GEQ,ELSEのトークンを追加する
 ### 加えた変更
@@ -146,15 +195,20 @@ IF ID(if0) GT INT(1) THEN ID(then1) EQ INT(2) ELSE ID(else2) EQ INT(3) - : unit 
 ### テストケース
 1-1と同様に、以下のテストケースをファイルとして用意した。
 ```
-# test1.txt
+// test1.txt
 if x >= 0 then x = 0 else x = x * x
 ```
 
 ```
-# test2.txt
+// test2.txt
 if if0 > 1 then then1 = 2 else else2 = 3
 ```
 
+CLIでlexerを生成。
+```
+$ ocamllex lexer-1-3.mll
+```
+`#use 'lexer-1-3.ml'`とした後に、
 ```
 # main "test1.txt";;
 - : token list =

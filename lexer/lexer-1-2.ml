@@ -63,6 +63,8 @@ and q0 () = (* 初期状態 *)
   | 'i' -> (save ID; q_i())
   | 't' -> (save ID; q_t())
   | '0' -> (save INT; next())
+  | '/' -> (pos_start := !pos_start+1;
+            q_lsl())
   | c -> if '1'<=c && c<='9' then (save INT; q_num())
          else if 'a'<= c && c<='z' then (save ID; q_sym())
          else if c='\000' then () (* 文字列の最後なら終了 *)
@@ -105,6 +107,21 @@ and q_sym() =
   let c = readc() in
       if ('a'<= c && c<='z')||('0'<=c && c<='9') then (save ID; q_sym())
       else next()
+
+and q_lsl() =
+  match readc() with
+    '*' -> (pos_start := !pos_start+1;q_com())
+  | _ -> report_error(!pos_current)
+
+and q_com() =
+  match readc() with
+    '*' -> (pos_start := !pos_start+1;q_ast())
+  | _ -> (pos_start := !pos_start+1;q_com())
+
+and q_ast() =
+  match readc() with
+    '/' -> (pos_start := !pos_start+1;q0())
+  | _ -> report_error(!pos_current)
 
 and next() = 
      if !last_token=INVALID then (* エラー *)
